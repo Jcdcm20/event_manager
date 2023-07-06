@@ -1,8 +1,6 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 
-template_letter = File.read('form_letter.html')
-
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
 end
@@ -25,13 +23,15 @@ def legislators_by_zipcode(zip)
   end
 end
 
-puts 'EventManager initialized.'
+puts 'Event Manager initialized.'
 
 contents = CSV.open(
   'event_attendees.csv',
   headers: true,
   header_converters: :symbol
 )
+
+template_letter = File.read('form_letter.html')
 
 contents.each do |row|
   name = row[:first_name]
@@ -40,5 +40,8 @@ contents.each do |row|
 
   legislators = legislators_by_zipcode(zipcode)
 
-  puts "#{name} #{zipcode} #{legislators}"
+  personal_letter = template_letter.gsub('FIRST_NAME', name)
+  personal_letter.gsub!('LEGISLATORS', legislators)
+
+  puts personal_letter
 end
