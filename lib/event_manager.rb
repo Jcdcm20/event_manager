@@ -1,6 +1,7 @@
 require 'csv'
 require 'google/apis/civicinfo_v2'
 require 'erb'
+require 'date'
 
 def clean_zipcode(zipcode)
   zipcode.to_s.rjust(5, '0')[0..4]
@@ -56,16 +57,43 @@ contents = CSV.open(
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
 
+day_of_week = {0 => 'sunday', 1 => 'monday', 2 => 'tuesday', 3 => 'wednesday', 4 => 'thursday', 5 => 'friday', 6 => 'saturday'}
+days = {}
+hours = {}
+
 contents.each do |row|
   id = row[0]
   name = row[:first_name]
   zipcode = clean_zipcode(row[:zipcode])
   number = clean_number(row[:homephone])
   legislators = legislators_by_zipcode(zipcode)
-  
+  # get day and hour
+  reg_date = DateTime.strptime(row[:regdate], '%m/%d/%y %H:%M')
+  # register day
+  if days.has_key?(reg_date.wday)
+    days[reg_date.wday] += 1
+  else
+    days[reg_date.wday] = 1
+  end
+
+  #register hour
+  if hours.has_key?(reg_date.hour)
+    hours[reg_date.hour] += 1
+  else
+    hours[reg_date.hour] = 1
+  end
+
   form_letter = erb_template.result(binding)
 
   save_thank_you_letter(id, form_letter)
-
-  puts number
 end
+
+#gets best day
+best_day = days.max_by{|k, v| v}
+best_day = day_of_week[best_day[0]]
+
+#gets best hour
+best_hour = hours.max_by{|k, v| v}[0]
+
+puts best_day
+puts best_hour
